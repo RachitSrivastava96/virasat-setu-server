@@ -19,15 +19,15 @@ router.get(
   })
 );
 
-// Google callback
+// Google callback - FIXED: Redirect to home page (/) instead of /dashboard
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: `${getFrontendURL()}/login?error=auth_failed`,
+    failureRedirect: `${getFrontendURL()}/?error=auth_failed`,
   }),
   (req, res) => {
-    // Success - redirect to frontend
-    res.redirect(`${getFrontendURL()}/dashboard`);
+    // Success - redirect to frontend home page
+    res.redirect(`${getFrontendURL()}/`);
   }
 );
 
