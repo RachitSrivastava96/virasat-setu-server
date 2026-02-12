@@ -1,31 +1,98 @@
 const router = require("express").Router();
 const passport = require("passport");
 
-// start Google OAuth
+// Get frontend URL from environment or default to localhost
+const getFrontendURL = () => {
+  return process.env.FRONTEND_URL || "http://localhost:3000";
+};
+
+/* =====================
+   GOOGLE OAUTH ROUTES
+===================== */
+
+// Start Google OAuth
 router.get(
   "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
+  passport.authenticate("google", { 
+    scope: ["profile", "email"],
+    prompt: "select_account", // Force account selection
+  })
 );
 
 // Google callback
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "http://localhost:3000",
-    successRedirect: "http://localhost:3000",
-  })
+    failureRedirect: `${getFrontendURL()}/login?error=auth_failed`,
+  }),
+  (req, res) => {
+    // Success - redirect to frontend
+    res.redirect(`${getFrontendURL()}/dashboard`);
+  }
 );
 
-// logout
-router.get("/logout", (req, res) => {
-  req.logout(() => {
-    res.redirect("http://localhost:3000");
+/* =====================
+   SESSION MANAGEMENT
+===================== */
+
+// Logout
+router.post("/logout", (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ error: "Logout failed" });
+    }
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Session destruction failed" });
+      }
+      res.clearCookie("virasat-setu-session");
+      res.json({ message: "Logged out successfully" });
+    });
   });
 });
 
-// current user
+// Alternative GET logout (for redirect-based logout)
+router.get("/logout", (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      console.error("Logout error:", err);
+    }
+    req.session.destroy(() => {
+      res.redirect(getFrontendURL());
+    });
+  });
+});
+
+/* =====================
+   USER INFO
+===================== */
+
+// Get current user
 router.get("/me", (req, res) => {
-  res.json(req.user || null);
+  if (!req.user) {
+    return res.status(401).json({ 
+      authenticated: false,
+      user: null 
+    });
+  }
+  
+  res.json({
+    authenticated: true,
+    user: {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      avatar: req.user.avatar,
+    },
+  });
+});
+
+// Check authentication status
+router.get("/status", (req, res) => {
+  res.json({
+    authenticated: !!req.user,
+    sessionID: req.sessionID,
+  });
 });
 
 module.exports = router;
