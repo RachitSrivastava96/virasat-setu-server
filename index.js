@@ -60,6 +60,7 @@ app.get("/", (req, res) => {
 // Auth routes
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/auth", require("./routes/localAuthRoutes")); // Email/password auth
+app.use("/api/places", require("./routes/placeRoutes"));
 
 /* =====================
    DATABASE + SERVER
