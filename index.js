@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
+const path = require("path");
 require("dotenv").config();
 
 require("./config/passport"); // passport strategies
@@ -17,8 +18,7 @@ const app = express();
 // req.secure is correctly set and secure cookies work.
 app.set("trust proxy", 1);
 
-// CORS
-// Allow Render + local frontend
+// COR
 app.use(
   cors({
     origin: true, // allow all origins (safe for hackathon)
@@ -65,6 +65,20 @@ app.get("/", (req, res) => {
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/auth", require("./routes/localAuthRoutes")); // Email/password auth
 app.use("/api/places", require("./routes/placeRoutes"));
+
+// In production, serve the React build from client/build so
+// that frontend and backend share the same origin.
+if (process.env.NODE_ENV === "production") {
+  const clientBuildPath = path.join(__dirname, "..", "client", "build");
+
+  // Serve static assets
+  app.use(express.static(clientBuildPath));
+
+  // For any non-API route, serve index.html from the React build
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(clientBuildPath, "index.html"));
+  });
+}
 
 /* =====================
    DATABASE + SERVER
