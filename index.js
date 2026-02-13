@@ -13,6 +13,10 @@ const app = express();
    MIDDLEWARE
 ===================== */
 
+// Behind Render's proxy, trust the first proxy so that
+// req.secure is correctly set and secure cookies work.
+app.set("trust proxy", 1);
+
 // CORS
 // Allow Render + local frontend
 app.use(
