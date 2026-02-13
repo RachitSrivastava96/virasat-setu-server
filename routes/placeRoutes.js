@@ -14,28 +14,43 @@ const { isAuthenticated } = require("../middleware/auth");
 router.get("/city/:cityName", async (req, res) => {
   try {
     const { cityName } = req.params;
-    
+
     // Get city info from OpenStreetMap + Wikipedia
     const cityData = await placesService.getCityInfo(cityName);
-    
+
     // Get artisans from our custom database
-    const artisans = await Artisan.find({ 
-      city: new RegExp(cityName, "i") 
+    const artisans = await Artisan.find({
+      city: new RegExp(cityName, "i"),
     })
       .limit(6)
       .lean();
 
+    const artisanImage = (a) =>
+      a.image || `https://source.unsplash.com/600x400/?${a.specialty},craft`;
+
     res.json({
-      ...cityData,
-      artisans: artisans.map((a) => ({
-        id: a._id,
-        name: a.name,
-        specialty: a.specialty,
-        description: a.description,
-        image: a.image || `https://source.unsplash.com/600x400/?${a.specialty},craft`,
-        phone: a.phone,
-        website: a.website,
-      })),
+      city: {
+        name: cityData.name,
+        state: cityData.state || "",
+        description: cityData.description || `Explore ${cityName}, India`,
+        wikiUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(cityName)}`,
+      },
+      data: {
+        monuments: cityData.places?.monuments || [],
+        restaurants: cityData.places?.restaurants || [],
+        hotels: cityData.places?.hotels || [],
+        artisans: artisans.map((a) => ({
+          id: a._id,
+          name: a.name,
+          specialty: a.specialty,
+          description: a.description,
+          address: a.address,
+          images: [artisanImage(a)],
+          contact: a.phone ? { phone: a.phone } : undefined,
+          phone: a.phone,
+          website: a.website,
+        })),
+      },
     });
   } catch (error) {
     console.error("City info error:", error);
